@@ -10,19 +10,27 @@ from pydub import AudioSegment
 import speech_recognition as sr
 import numpy as np
 import openai
-import pyttsx3
 
-# Initialize the text-to-speech engine
-engine = pyttsx3.init()
 
-def text_to_speech(text, t):
-    engine.say(text)
-    engine.runAndWait()
-    if not t:
-        engine.stop()
 
-def stop_speech():
-    engine.stop()
+
+from gtts import gTTS
+from io import BytesIO
+from pydub import AudioSegment
+from pydub.playback import play
+
+def text_to_speech(text):
+    # Convert text to speech using gTTS and return the audio as an AudioSegment object
+    tts = gTTS(text, lang='en')  # You can change the language by altering the 'lang' argument
+    mp3_fp = BytesIO()  # Use a BytesIO object to store the audio in memory (no saving to disk)
+    tts.write_to_fp(mp3_fp)
+    mp3_fp.seek(0)
+    
+    # Convert BytesIO to an AudioSegment (requires pydub)
+    audio = AudioSegment.from_file(mp3_fp, format="mp3")
+    return audio
+
+
 
 def preprocess_audio(audio_data):
     audio_array = np.array(audio_data.get_array_of_samples())
@@ -60,7 +68,6 @@ def record_audio():
         
         return transcription['text']
 
-# Load embeddings and models
 embeddings = OpenAIEmbeddings()
 db = FAISS.load_local("openai_index", embeddings, allow_dangerous_deserialization=True)
 llm = OpenAI(model_name="gpt-4", api_key=os.getenv("OPENAI_API_KEY"))
@@ -106,24 +113,18 @@ def main():
         if "input_field" not in st.session_state or st.session_state.input_field != text_input:
             response = rag(text_input)
             st.write(response)
-            text_to_speech(response, True)
+            a = text_to_speech(response)
+            play(a)
 
-    if 'audio_playing' not in st.session_state:
-        st.session_state.audio_playing = False  # Initialize the state
-
-    stopButton = st.button("Stop Audio", key="stop_audio")
     
-    if stopButton:
-        stop_speech()
-        st.session_state.audio_playing = False  # Manage the state
-
     button_pressed = st.button("Record Audio", key="record_audio")
     
     if button_pressed:
         transcription = record_audio()
         response = rag(transcription)
         st.write(response)
-        text_to_speech(response, True)
+        a = text_to_speech(response)
+        play(a)
         st.session_state.audio_playing = True  # Manage the state
 
     # Manage button styling
@@ -148,3 +149,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
