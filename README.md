@@ -4,13 +4,10 @@ $ python --version
 
 Python 3.11.0rc1
 
-
-You may have to 
-
-$ python -m pip install openai==0.28
-
-$ python -m nltk.downloader averaged_perceptron_tagger
-
-$ python -m pip install nltk==3.8.1
+Steps:
+1. Create virtual env: python3 -m venv env
+2. Activate env
+3. pip install -r requirements.txt
+4. streamlit run VoiceAssistant_SolveCube.py
 
 
