@@ -1,8 +1,5 @@
-streamlit==1.39.0
-langchain==0.2.16
-langchain-community==0.2.11
-openai==1.45.0
-faiss-cpu==1.7.3
+langchain==0.3.4
+openai===1.52.0
 pydub==0.25.1
 SpeechRecognition==3.10.0
 numpy==1.23.5
@@ -11,5 +8,6 @@ pygame==2.6.1
 gTTS==2.5.3
 tiktoken==0.8.0
 pyaudio==0.2.14
-langchain-openai==0.2.3
 faiss-cpu==1.8.0.post1
+langchain_community==0.3.3
+langchain_openai==0.2.3
