@@ -1,42 +1,33 @@
 import os
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.llms import OpenAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import RetrievalQA
+from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 import streamlit as st
 
 embeddings = OpenAIEmbeddings()
 db = FAISS.load_local("openai_index", embeddings, allow_dangerous_deserialization=True)
-llm = OpenAI(model_name="gpt-4o", api_key=os.environ["OPENAI_API_KEY"])
+llm = ChatOpenAI(model_name="gpt-4o", api_key=os.environ["OPENAI_API_KEY"])
 
 def rag(query):
-    prompt_template = """
-
-    Human: Use the following pieces of context to provide a detailed respone to the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    <context>
-    {context}
-    </context
-
-    Question: {question}
-
-    Assistant:"""
-
-    PROMPT = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
+    system_prompt = '''Your task is to act as our website helper bot. We will ask you any query related to our website 'Solvecube' and you will answer smartly.\n "{context}"'''
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
     )
+    retriever = db.as_retriever()
 
-    ##!!! PLAY AROUND WITH SEARCH TYPE AND HOW MANY CHUNKS (SEARCH KWARGS) TO SEND AS CONTEXT TO MODEL
-    qa = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=db.as_retriever(
-            search_type="similarity", search_kwargs={"k": 100}
-        ),
-        return_source_documents=True,
-        chain_type_kwargs={"prompt": PROMPT}
-    )
-    return qa({"query": query})["result"]
+    # creating rag_chain with history_aware_retriever.. retriever get context from embedded documents based on rephrased query and then add this context to system prompt and then send it to llm
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+    response = rag_chain.invoke({"input": query})
+    result = response["answer"]
+
+    return result
 
 st.header("SolveCube Chatbot")
 
@@ -45,4 +36,4 @@ user_query = st.text_input(label="", help="Ask here to learn about SolveCube", p
 
 rag_response = rag(user_query)
 st.header("My Response")
-st.write(rag_response)
+st.markdown(rag_response)
